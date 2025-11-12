@@ -102,6 +102,8 @@
         [[button1.centerXAnchor constraintEqualToAnchor:self.centerXAnchor] setActive:YES];
         self.detailsButton = button1;
         [self addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureRecognizer:)]];
+        
+        self.alpha = 0.0; //默认隐藏
     }
     return self;
 }
