@@ -103,12 +103,17 @@ void am_fi_sw_in_me(Class clas,
     
     [NSObject performTaskOnDefaultRunLoopMode:^{
         [UIViewController.memoryLeakModelArray enumerateObjectsUsingBlock:^(AMMemoryLeakModel * _Nonnull obj1, NSUInteger idx1, BOOL * _Nonnull stop1) {
-            if (obj1.memoryLeakDeallocModel.controller == self
-                && obj1.memoryLeakDeallocModel.shouldDealloc == YES) {
-                obj1.memoryLeakDeallocModel.shouldDeallocDate = NSDate.new;
-                // 获取控制器的 view 以及所有 子子孙孙 view
-                UIViewController *vc = obj1.memoryLeakDeallocModel.controller;
-                [vc.view amleaks_finder_shouldDeallocWithVC:vc];
+            if (obj1.memoryLeakDeallocModel.controller == self) {
+                if (obj1.memoryLeakDeallocModel.shouldDealloc) {
+                    obj1.memoryLeakDeallocModel.shouldDeallocDate = NSDate.new;
+                    // 获取控制器的 view 以及所有 子子孙孙 view
+                    UIViewController *vc = obj1.memoryLeakDeallocModel.controller;
+                    [vc.view amleaks_finder_shouldDeallocWithVC:vc];
+                }
+                else {
+                    // 如果之前没有标记为要dealloc，先标记为已经消失
+                    obj1.memoryLeakDeallocModel.isDisappeared = YES;
+                }
             }
         }];
         
@@ -131,7 +136,13 @@ void am_fi_sw_in_me(Class clas,
         [UIViewController.memoryLeakModelArray enumerateObjectsUsingBlock:^(AMMemoryLeakModel * _Nonnull obj1, NSUInteger idx1, BOOL * _Nonnull stop1) {
             if (obj1.memoryLeakDeallocModel.controller == self) {
                 obj1.memoryLeakDeallocModel.shouldDealloc = YES;
-                obj1.memoryLeakDeallocModel.shouldDeallocDate = [NSDate.new initWithTimeIntervalSinceNow:MAXFLOAT];
+                // 如果之前已经标记为已经消失了，那理论上应该要被销毁了；否则等待disappear的调用
+                if (obj1.memoryLeakDeallocModel.isDisappeared) {
+                    obj1.memoryLeakDeallocModel.shouldDeallocDate = [NSDate date];
+                }
+                else {
+                    obj1.memoryLeakDeallocModel.shouldDeallocDate = [NSDate.new initWithTimeIntervalSinceNow:MAXFLOAT];
+                }
             }
         }];
     }];
@@ -186,14 +197,17 @@ void am_fi_sw_in_me(Class clas,
              enumerateObjectsUsingBlock:^(AMMemoryLeakModel * _Nonnull obj1,
                                           NSUInteger idx1,
                                           BOOL * _Nonnull stop1) {
-                if (obj1.memoryLeakDeallocModel.controller == obj
-                    && obj1.memoryLeakDeallocModel.shouldDealloc) {
-                    // 如果控制器已经设置为将要释放
-                    // 就改为正常
-                    obj1.memoryLeakDeallocModel.shouldDealloc = NO;
-                    // views 设置为正常
-                    [obj1.memoryLeakDeallocModel.controller.view amleaks_finder_normal];
-                    flag = YES;
+                if (obj1.memoryLeakDeallocModel.controller == obj) {
+                    if (obj1.memoryLeakDeallocModel.shouldDealloc) {
+                        // 如果控制器已经设置为将要释放
+                        // 就改为正常
+                        obj1.memoryLeakDeallocModel.shouldDealloc = NO;
+                        // views 设置为正常
+                        [obj1.memoryLeakDeallocModel.controller.view amleaks_finder_normal];
+                        flag = YES;
+                    }
+                    // 重制消失标记位
+                    obj1.memoryLeakDeallocModel.isDisappeared = NO;
                 }
             }];
         }];

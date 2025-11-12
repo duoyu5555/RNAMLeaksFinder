@@ -32,6 +32,8 @@
 @property (nonatomic, assign) BOOL shouldDealloc; ///< 应该释放了
 @property (nullable, nonatomic, strong) NSDate *shouldDeallocDate; ///<  标记准备释放的时间
 
+#pragma mark RN
+@property (nonatomic, assign) BOOL isDisappeared; ///< 已经不显示了
 @end
 
 #endif
